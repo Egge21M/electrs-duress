@@ -4,9 +4,18 @@ import { expect, test } from "bun:test";
 import { startFromEnv } from "./cli";
 import { createDatabase } from "./db/client";
 
-test("starts after xpub watch source migrations have been applied", async () => {
+test("starts with config loaded from sqlite", async () => {
   const dbFileName = `/tmp/electrs-duress-cli-${randomUUID()}.sqlite`;
   const db = createDatabase(dbFileName);
+  const port = await getAvailablePort();
+
+  db.$client.run(`
+    CREATE TABLE config_entries (
+      key text PRIMARY KEY NOT NULL,
+      value text NOT NULL,
+      updated_at_ms integer NOT NULL
+    )
+  `);
   db.$client.run(`
     CREATE TABLE xpub_watch_sources (
       xpub text PRIMARY KEY NOT NULL,
@@ -17,19 +26,21 @@ test("starts after xpub watch source migrations have been applied", async () => 
       updated_at_ms integer NOT NULL
     )
   `);
+  db.$client.run(
+    `INSERT INTO config_entries (key, value, updated_at_ms) VALUES (?, ?, ?)`,
+    ["LISTEN_PORT", String(port), Date.now()],
+  );
   db.$client.close();
 
-  const port = await getAvailablePort();
   const server = startFromEnv({
     DB_FILE_NAME: dbFileName,
-    LISTEN_PORT: String(port),
   });
 
   await waitForListening(server);
   await closeServer(server);
 });
 
-test("fails clearly when the xpub watch source table is missing", () => {
+test("fails clearly when sqlite config tables are missing", () => {
   expect(() =>
     startFromEnv({
       DB_FILE_NAME: ":memory:",

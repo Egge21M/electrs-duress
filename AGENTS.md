@@ -5,7 +5,7 @@
 `electrs-duress` is a Bun workspace. The root `package.json` only coordinates
 workspace scripts. The server package lives in `packages/server`; its
 `index.ts` is both the public export surface and CLI entrypoint. Runtime modules
-live in `packages/server/src/`: `config.ts` parses environment variables,
+live in `packages/server/src/`: `config.ts` parses SQLite-backed config records,
 `proxy.ts` owns socket forwarding, `electrum-observer.ts` parses Electrum
 JSON-RPC requests, and notification modules publish console or Telegram alerts.
 Tests are colocated as `*.test.ts`.
@@ -22,8 +22,8 @@ Tests are colocated as `*.test.ts`.
 Package-local equivalents can be run from `packages/server` with the same
 script names.
 
-For local TLS upstream testing, prefer environment variables such as
-`ELECTRUM_HOST=btc1.shiftcrypto.io ELECTRUM_PORT=443 ELECTRUM_TLS=true bun run start`.
+For local TLS upstream testing, set `ELECTRUM_HOST`, `ELECTRUM_PORT`, and
+`ELECTRUM_TLS` in the `config_entries` SQLite table before running `bun run start`.
 
 ## Coding Style & Naming Conventions
 
@@ -54,9 +54,10 @@ requirements.
 
 ## Security & Configuration Tips
 
-Do not commit `.env` files, Telegram bot tokens, chat IDs, or private wallet
-material. Local `*.sqlite` database files are ignored and should remain
-machine-local; commit Drizzle migrations in `packages/server/drizzle` instead.
-Watch-only configuration should use xpub-style public keys. Treat
+Do not commit `.env` files or private wallet material. Runtime settings,
+including Telegram credentials, live in local SQLite and should remain
+machine-local. Local `*.sqlite` database files are ignored; commit Drizzle
+migrations in `packages/server/drizzle` instead. Watch-only configuration
+should use xpub-style public keys. Treat
 `ELECTRUM_TLS_REJECT_UNAUTHORIZED=false` as a local testing escape hatch, not a
 default production setting.

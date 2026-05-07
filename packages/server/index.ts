@@ -1,6 +1,7 @@
 export { readConfigFromEnv } from "./src/config";
 export { startFromEnv } from "./src/cli";
 export { createDatabase, getDatabaseFileName } from "./src/db/client";
+export { createConfigRepository } from "./src/db/config-repository";
 export {
   createXpubWatchSourceRepository,
   toWatchConfig,
@@ -8,6 +9,8 @@ export {
 export { createXpubWatchService } from "./src/xpub-watch-service";
 export { createElectrumProxy, formatUpstream } from "./src/proxy";
 export type { ElectrsDatabase } from "./src/db/client";
+export type { ConfigRepository } from "./src/db/config-repository";
+export type { ConfigEntry, NewConfigEntry } from "./src/db/schema";
 export type {
   CreateXpubWatchSourceInput,
   UpdateXpubWatchSourceInput,
