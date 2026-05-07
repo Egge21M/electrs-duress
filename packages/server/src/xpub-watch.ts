@@ -3,6 +3,8 @@ import { HDKey, type Versions } from "@scure/bip32";
 import * as bitcoin from "bitcoinjs-lib";
 import type { WatchConfig } from "./types";
 
+const RECEIVE_BRANCH = 0;
+
 export interface WatchedAddress {
   address: string;
   index: number;
@@ -18,26 +20,26 @@ export interface XpubWatch {
 export function createXpubWatch(config: WatchConfig): XpubWatch {
   const network = inferNetwork(config.xpub);
   const root = HDKey.fromExtendedKey(config.xpub, network.bip32Versions);
-  const chain = root.deriveChild(config.chain);
+  const receiveBranch = root.deriveChild(RECEIVE_BRANCH);
   const addresses: WatchedAddress[] = [];
   const byScriptHash = new Map<string, WatchedAddress>();
 
   for (let index = 0; index < config.addressCount; index += 1) {
-    const child = chain.deriveChild(index);
+    const child = receiveBranch.deriveChild(index);
     if (!child.publicKey) {
-      throw new Error(`Could not derive public key at m/${config.chain}/${index}`);
+      throw new Error(`Could not derive public key at m/${RECEIVE_BRANCH}/${index}`);
     }
 
     const payment = network.createPayment(child.publicKey);
 
     if (!payment.address || !payment.output) {
-      throw new Error(`Could not derive address at m/${config.chain}/${index}`);
+      throw new Error(`Could not derive address at m/${RECEIVE_BRANCH}/${index}`);
     }
 
     const watchedAddress = {
       address: payment.address,
       index,
-      path: `m/${config.chain}/${index}`,
+      path: `m/${RECEIVE_BRANCH}/${index}`,
       scriptHash: scriptToElectrumScriptHash(payment.output),
     };
 
@@ -112,7 +114,7 @@ function inferNetwork(xpub: string): WatchNetwork {
     };
   }
 
-  throw new Error("WATCH_XPUB must start with xpub, tpub, zpub, or vpub");
+  throw new Error("xpub must start with xpub, tpub, zpub, or vpub");
 }
 
 function scriptToElectrumScriptHash(script: Uint8Array) {

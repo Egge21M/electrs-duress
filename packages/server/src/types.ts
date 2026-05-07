@@ -13,7 +13,6 @@ export interface ElectrumProxyConfig {
   upstream: UpstreamEndpoint;
   logAddressRequests: boolean;
   telegram?: TelegramNotificationConfig;
-  watch?: WatchConfig;
 }
 
 export interface TelegramNotificationConfig {
@@ -26,7 +25,6 @@ export interface TelegramNotificationConfig {
 export interface WatchConfig {
   xpub: string;
   addressCount: number;
-  chain: number;
 }
 
 export interface Logger {

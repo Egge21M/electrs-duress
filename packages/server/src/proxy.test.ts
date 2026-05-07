@@ -1,14 +1,19 @@
 import { afterEach, expect, test } from "bun:test";
 import net, { type Server, type Socket } from "node:net";
 import { NotificationService, type Notification } from "./notification-service";
-import { createElectrumProxy } from "./proxy";
+import { createElectrumProxy, type ScriptHashWatchService } from "./proxy";
+import type { WatchedAddress } from "./xpub-watch";
 
-const fixtureXpub =
-  "xpub6DDeqdmzCpioRhR7fgHQAibbTMNRcPnW1qcYrrtAR5YEAWztVK3G6HuAky6Y3mZzB4UCqVifkXFY2qBUv8rJCHiT1JfoCLtUerZYp653yss";
 const watchedScriptHash =
   "aa7ea9c5470f1a8186bfcac43af945464514633106097c14b8375bfcba7ef21f";
 const unwatchedScriptHash =
   "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+const watchedAddress: WatchedAddress = {
+  address: "1Exq3M51dXqk8eHnosigC5DPDVYbxz9934",
+  index: 0,
+  path: "m/0/0",
+  scriptHash: watchedScriptHash,
+};
 
 const servers: Server[] = [];
 const sockets: Socket[] = [];
@@ -46,16 +51,12 @@ test("alerts when a watched script-hash is requested", async () => {
         tlsRejectUnauthorized: true,
       },
       logAddressRequests: false,
-      watch: {
-        xpub: fixtureXpub,
-        addressCount: 1,
-        chain: 0,
-      },
     },
     logger: {
       log: (message) => logs.push(message),
       error: (message) => logs.push(message),
     },
+    watchService: createStaticWatchService([watchedAddress]),
   });
 
   await listen(proxy, "127.0.0.1", 0);
@@ -113,16 +114,12 @@ test("does not alert when an unwatched script-hash is requested", async () => {
         tlsRejectUnauthorized: true,
       },
       logAddressRequests: false,
-      watch: {
-        xpub: fixtureXpub,
-        addressCount: 1,
-        chain: 0,
-      },
     },
     logger: {
       log: (message) => logs.push(message),
       error: (message) => logs.push(message),
     },
+    watchService: createStaticWatchService([watchedAddress]),
   });
 
   await listen(proxy, "127.0.0.1", 0);
@@ -181,16 +178,12 @@ test("logs unwatched address requests only when explicitly enabled", async () =>
         tlsRejectUnauthorized: true,
       },
       logAddressRequests: true,
-      watch: {
-        xpub: fixtureXpub,
-        addressCount: 1,
-        chain: 0,
-      },
     },
     logger: {
       log: (message) => logs.push(message),
       error: (message) => logs.push(message),
     },
+    watchService: createStaticWatchService([watchedAddress]),
   });
 
   await listen(proxy, "127.0.0.1", 0);
@@ -251,17 +244,13 @@ test("notifies registered handlers when a watched script-hash is requested", asy
         tlsRejectUnauthorized: true,
       },
       logAddressRequests: false,
-      watch: {
-        xpub: fixtureXpub,
-        addressCount: 1,
-        chain: 0,
-      },
     },
     logger: {
       log: (message) => logs.push(message),
       error: (message) => logs.push(message),
     },
     notificationService,
+    watchService: createStaticWatchService([watchedAddress]),
   });
 
   await listen(proxy, "127.0.0.1", 0);
@@ -289,10 +278,7 @@ test("notifies registered handlers when a watched script-hash is requested", asy
       method: "blockchain.scripthash.get_balance",
       scriptHash: watchedScriptHash,
       watchedAddress: {
-        address: "1Exq3M51dXqk8eHnosigC5DPDVYbxz9934",
-        index: 0,
-        path: "m/0/0",
-        scriptHash: watchedScriptHash,
+        ...watchedAddress,
       },
     },
   ]);
@@ -328,16 +314,12 @@ test("alerts when a watched script-hash subscription is requested", async () => 
         tlsRejectUnauthorized: true,
       },
       logAddressRequests: false,
-      watch: {
-        xpub: fixtureXpub,
-        addressCount: 1,
-        chain: 0,
-      },
     },
     logger: {
       log: (message) => logs.push(message),
       error: (message) => logs.push(message),
     },
+    watchService: createStaticWatchService([watchedAddress]),
   });
 
   await listen(proxy, "127.0.0.1", 0);
@@ -459,4 +441,16 @@ function tcpAddress(server: Server) {
   }
 
   return address;
+}
+
+function createStaticWatchService(
+  watchedAddresses: WatchedAddress[],
+): ScriptHashWatchService {
+  return {
+    matchScriptHash(scriptHash) {
+      return watchedAddresses.filter(
+        (address) => address.scriptHash === scriptHash.toLowerCase(),
+      );
+    },
+  };
 }

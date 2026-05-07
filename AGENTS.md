@@ -7,12 +7,14 @@ workspace scripts. The server package lives in `packages/server`; its
 `index.ts` is both the public export surface and CLI entrypoint. Runtime modules
 live in `packages/server/src/`: `config.ts` parses environment variables,
 `proxy.ts` owns socket forwarding, `electrum-observer.ts` parses Electrum
-JSON-RPC requests, `xpub-watch.ts` derives watched addresses, and notification
-modules publish console or Telegram alerts. Tests are colocated as `*.test.ts`.
+JSON-RPC requests, and notification modules publish console or Telegram alerts.
+Tests are colocated as `*.test.ts`.
 
 ## Build, Test, and Development Commands
 
 - `bun install`: install all workspace dependencies from `bun.lock`.
+- `bun run db:generate`: generate Drizzle migrations from the server schema.
+- `bun run db:migrate`: apply generated migrations to `DB_FILE_NAME`.
 - `bun run start`: delegate to `@electrs-duress/server` and run the proxy.
 - `bun run typecheck`: typecheck the server package with `tsc --noEmit`.
 - `bun run test`: run the server package test suite.
@@ -25,12 +27,12 @@ For local TLS upstream testing, prefer environment variables such as
 
 ## Coding Style & Naming Conventions
 
-Use TypeScript ES modules and Bun APIs where practical. Keep imports explicit,
-export public server APIs from `packages/server/index.ts`, and prefer small
-focused modules under `packages/server/src/`. Follow the existing two-space
-indentation, double-quoted strings, and trailing commas in multiline calls and
-object literals. Use camelCase for functions and variables, PascalCase for
-exported interfaces/classes, and clear environment variable names in all caps.
+Use TypeScript ES modules and Bun APIs where practical. Export public server
+APIs from `packages/server/index.ts`, and prefer small focused modules under
+`packages/server/src/`. Follow the existing two-space indentation,
+double-quoted strings, and trailing commas in multiline calls and object
+literals. Use camelCase for variables/functions and PascalCase for exported
+types/classes.
 
 ## Testing Guidelines
 
@@ -53,6 +55,8 @@ requirements.
 ## Security & Configuration Tips
 
 Do not commit `.env` files, Telegram bot tokens, chat IDs, or private wallet
-material. Watch-only configuration should use xpub-style public keys. Treat
+material. Local `*.sqlite` database files are ignored and should remain
+machine-local; commit Drizzle migrations in `packages/server/drizzle` instead.
+Watch-only configuration should use xpub-style public keys. Treat
 `ELECTRUM_TLS_REJECT_UNAUTHORIZED=false` as a local testing escape hatch, not a
 default production setting.

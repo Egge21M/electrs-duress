@@ -6,13 +6,18 @@ import {
   type NotificationService,
 } from "./notification-service";
 import { createTelegramNotificationHandler } from "./telegram-notification-handler";
-import { createXpubWatch, type XpubWatch } from "./xpub-watch";
+import type { WatchedAddress } from "./xpub-watch";
 import type { ElectrumProxyConfig, Logger, UpstreamEndpoint } from "./types";
+
+export interface ScriptHashWatchService {
+  matchScriptHash(scriptHash: string): WatchedAddress[];
+}
 
 export interface CreateElectrumProxyOptions {
   config: ElectrumProxyConfig;
   logger?: Logger;
   notificationService?: NotificationService;
+  watchService?: ScriptHashWatchService;
 }
 
 export function createElectrumProxy(
@@ -20,7 +25,6 @@ export function createElectrumProxy(
 ): Server {
   const { config } = options;
   const logger = options.logger ?? console;
-  const watch = config.watch ? createXpubWatch(config.watch) : undefined;
   const notificationService =
     options.notificationService ?? createDefaultNotificationService(logger);
   if (config.telegram) {
@@ -40,7 +44,7 @@ export function createElectrumProxy(
       (request) => {
         maybeNotifyWatchedScriptHashRequest(
           request,
-          watch,
+          options.watchService,
           notificationService,
           logger,
         );
@@ -103,39 +107,43 @@ function maybeNotifyWatchedScriptHashRequest(
     method: string;
     target: unknown;
   },
-  watch: XpubWatch | undefined,
+  watchService: ScriptHashWatchService | undefined,
   notificationService: NotificationService,
   logger: Logger,
 ) {
   if (
-    !watch ||
+    !watchService ||
     !request.method.startsWith("blockchain.scripthash.") ||
     typeof request.target !== "string"
   ) {
     return;
   }
 
-  const watchedAddress = watch.byScriptHash.get(request.target.toLowerCase());
-  if (!watchedAddress) {
+  const watchedAddresses = watchService.matchScriptHash(
+    request.target.toLowerCase(),
+  );
+  if (watchedAddresses.length === 0) {
     return;
   }
 
-  void notificationService
-    .notify({
-      type: "watched-scripthash-requested",
-      clientLabel: request.clientLabel,
-      id: request.id,
-      method: request.method,
-      scriptHash: watchedAddress.scriptHash,
-      watchedAddress,
-    })
-    .catch((error: unknown) => {
-      logger.error(
-        `[notification error] ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-    });
+  for (const watchedAddress of watchedAddresses) {
+    void notificationService
+      .notify({
+        type: "watched-scripthash-requested",
+        clientLabel: request.clientLabel,
+        id: request.id,
+        method: request.method,
+        scriptHash: watchedAddress.scriptHash,
+        watchedAddress,
+      })
+      .catch((error: unknown) => {
+        logger.error(
+          `[notification error] ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      });
+  }
 }
 
 export function formatUpstream(upstream: UpstreamEndpoint) {

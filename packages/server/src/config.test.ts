@@ -31,9 +31,6 @@ test("reads proxy config overrides from the environment", () => {
       TELEGRAM_CHAT_ID: "12345",
       TELEGRAM_CUSTOM_MESSAGE: "custom alert",
       TELEGRAM_DEBOUNCE_MS: "2500",
-      WATCH_XPUB: "xpub-example",
-      WATCH_ADDRESS_COUNT: "20",
-      WATCH_CHAIN: "1",
     }),
   ).toEqual({
     listen: {
@@ -53,11 +50,6 @@ test("reads proxy config overrides from the environment", () => {
       customMessage: "custom alert",
       debounceMs: 2500,
     },
-    watch: {
-      xpub: "xpub-example",
-      addressCount: 20,
-      chain: 1,
-    },
   });
 });
 
@@ -65,15 +57,6 @@ test("rejects invalid port values", () => {
   expect(() => readConfigFromEnv({ LISTEN_PORT: "nope" })).toThrow(
     "LISTEN_PORT must be a TCP port between 1 and 65535",
   );
-});
-
-test("rejects invalid watch address counts", () => {
-  expect(() =>
-    readConfigFromEnv({
-      WATCH_XPUB: "xpub-example",
-      WATCH_ADDRESS_COUNT: "0",
-    }),
-  ).toThrow("WATCH_ADDRESS_COUNT must be an integer between 1 and 10000");
 });
 
 test("rejects invalid address request log flags", () => {

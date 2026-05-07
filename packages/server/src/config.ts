@@ -4,19 +4,6 @@ export function readConfigFromEnv(
   env: Record<string, string | undefined>,
 ): ElectrumProxyConfig {
   const telegram = readTelegramConfigFromEnv(env);
-  const watch = env.WATCH_XPUB
-    ? {
-        xpub: env.WATCH_XPUB,
-        addressCount: parseIntegerInRange(
-          env.WATCH_ADDRESS_COUNT,
-          200,
-          "WATCH_ADDRESS_COUNT",
-          1,
-          10_000,
-        ),
-        chain: parseIntegerInRange(env.WATCH_CHAIN, 0, "WATCH_CHAIN", 0, 1),
-      }
-    : undefined;
 
   const config: ElectrumProxyConfig = {
     listen: {
@@ -42,10 +29,6 @@ export function readConfigFromEnv(
 
   if (telegram) {
     config.telegram = telegram;
-  }
-
-  if (watch) {
-    config.watch = watch;
   }
 
   return config;

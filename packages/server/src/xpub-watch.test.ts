@@ -10,7 +10,6 @@ test("derives watched P2PKH addresses and Electrum script hashes from an xpub", 
   const watch = createXpubWatch({
     xpub: fixtureXpub,
     addressCount: 3,
-    chain: 0,
   });
 
   expect(watch.addresses).toEqual([
@@ -49,16 +48,14 @@ test("rejects unsupported extended public key prefixes", () => {
     createXpubWatch({
       xpub: "ypub-example",
       addressCount: 1,
-      chain: 0,
     }),
-  ).toThrow("WATCH_XPUB must start with xpub, tpub, zpub, or vpub");
+  ).toThrow("xpub must start with xpub, tpub, zpub, or vpub");
 });
 
 test("derives watched native SegWit addresses from a zpub", () => {
   const watch = createXpubWatch({
     xpub: fixtureZpub,
     addressCount: 1,
-    chain: 0,
   });
 
   expect(watch.addresses).toEqual([

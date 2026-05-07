@@ -16,6 +16,12 @@ Install dependencies:
 bun install
 ```
 
+Apply SQLite migrations:
+
+```bash
+bun run db:migrate
+```
+
 Run the proxy:
 
 ```bash
@@ -49,21 +55,42 @@ variables in `.env` and running `bun run start`.
 | `ELECTRUM_PORT` | `50001` | Upstream Electrum server port. |
 | `ELECTRUM_TLS` | `false` | Use TLS for upstream Electrum traffic. |
 | `ELECTRUM_TLS_REJECT_UNAUTHORIZED` | `true` | Set to `false` for Electrum servers with certificates not trusted by the local CA store. |
-| `WATCH_XPUB` | unset | Extended public key to watch. Supports `xpub`/`tpub` P2PKH and `zpub`/`vpub` native SegWit P2WPKH. |
-| `WATCH_ADDRESS_COUNT` | `200` | Number of child addresses to derive and watch. |
-| `WATCH_CHAIN` | `0` | Non-hardened child chain to derive, usually `0` for external addresses. |
 | `LOG_ADDRESS_REQUESTS` | `false` | When `true`, logs every observed address/script-hash request, including non-alerts. |
 | `TELEGRAM_BOT_TOKEN` | unset | Enables Telegram notifications when set with `TELEGRAM_CHAT_ID`. |
 | `TELEGRAM_CHAT_ID` | unset | Destination Telegram chat ID for alerts. |
 | `TELEGRAM_CUSTOM_MESSAGE` | unset | Sends this exact Telegram text instead of generated alert details. |
 | `TELEGRAM_DEBOUNCE_MS` | `5000` | Quiet period before queued Telegram alerts are sent as one message. |
+| `DB_FILE_NAME` | `electrs-duress.sqlite` | SQLite database path used by Drizzle commands and the server DB client. |
+
+## SQLite Backend
+
+The server package uses Drizzle with Bun SQLite for xpub watch configuration.
+The `xpub_watch_sources` table is the source of truth for watched xpubs; derived
+script hashes are built into an in-memory lookup at startup.
+
+Generate migrations after schema changes:
+
+```bash
+bun run db:generate
+```
+
+Apply generated migrations to the configured SQLite file with Bun's native
+SQLite migrator:
+
+```bash
+DB_FILE_NAME=electrs-duress.sqlite bun run db:migrate
+```
+
+Migration files live in `packages/server/drizzle`; local `*.sqlite` database
+files are ignored.
 
 ## Watched-Key Alerts
 
-Set `WATCH_XPUB` to derive watched addresses at startup. The proxy computes the
-Electrum script hash for each derived output script. If the wallet sends any
-observed `blockchain.scripthash.*` request for a watched hash, the proxy emits a
-notification.
+Enabled xpub watch sources are loaded from SQLite at startup. The proxy derives
+branch `0` addresses, computes the Electrum script hash for each derived output
+script, and keeps the active script-hash index in memory. If the wallet sends
+any observed `blockchain.scripthash.*` request for a watched hash, the proxy
+emits a notification.
 
 Console alert example:
 

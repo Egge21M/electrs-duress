@@ -6,6 +6,8 @@
     "packages/*"
   ],
   "scripts": {
+    "db:generate": "bun run --filter @electrs-duress/server db:generate",
+    "db:migrate": "bun run --filter @electrs-duress/server db:migrate",
     "start": "bun run --filter @electrs-duress/server start",
     "test": "bun run --filter @electrs-duress/server test",
     "typecheck": "bun run --filter @electrs-duress/server typecheck"
