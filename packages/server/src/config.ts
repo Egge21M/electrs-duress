@@ -1,27 +1,29 @@
 import type { ElectrumProxyConfig } from "./types";
 
-export function readConfigFromEnv(
-  env: Record<string, string | undefined>,
+export type ConfigRecord = Record<string, string | undefined>;
+
+export function readConfig(
+  configEntries: ConfigRecord,
 ): ElectrumProxyConfig {
-  const telegram = readTelegramConfigFromEnv(env);
+  const telegram = readTelegramConfig(configEntries);
 
   const config: ElectrumProxyConfig = {
     listen: {
-      host: env.LISTEN_HOST ?? "127.0.0.1",
-      port: parsePort(env.LISTEN_PORT, 60001, "LISTEN_PORT"),
+      host: configEntries.LISTEN_HOST ?? "127.0.0.1",
+      port: parsePort(configEntries.LISTEN_PORT, 60001, "LISTEN_PORT"),
     },
     upstream: {
-      host: env.ELECTRUM_HOST ?? "127.0.0.1",
-      port: parsePort(env.ELECTRUM_PORT, 50001, "ELECTRUM_PORT"),
-      tls: parseBoolean(env.ELECTRUM_TLS, false, "ELECTRUM_TLS"),
+      host: configEntries.ELECTRUM_HOST ?? "127.0.0.1",
+      port: parsePort(configEntries.ELECTRUM_PORT, 50001, "ELECTRUM_PORT"),
+      tls: parseBoolean(configEntries.ELECTRUM_TLS, false, "ELECTRUM_TLS"),
       tlsRejectUnauthorized: parseBoolean(
-        env.ELECTRUM_TLS_REJECT_UNAUTHORIZED,
+        configEntries.ELECTRUM_TLS_REJECT_UNAUTHORIZED,
         true,
         "ELECTRUM_TLS_REJECT_UNAUTHORIZED",
       ),
     },
     logAddressRequests: parseBoolean(
-      env.LOG_ADDRESS_REQUESTS,
+      configEntries.LOG_ADDRESS_REQUESTS,
       false,
       "LOG_ADDRESS_REQUESTS",
     ),
@@ -34,15 +36,17 @@ export function readConfigFromEnv(
   return config;
 }
 
-function readTelegramConfigFromEnv(env: Record<string, string | undefined>) {
-  const botToken = env.TELEGRAM_BOT_TOKEN;
-  const chatId = env.TELEGRAM_CHAT_ID;
+export const readConfigFromEnv = readConfig;
+
+function readTelegramConfig(configEntries: ConfigRecord) {
+  const botToken = configEntries.TELEGRAM_BOT_TOKEN;
+  const chatId = configEntries.TELEGRAM_CHAT_ID;
 
   if (
     !botToken &&
     !chatId &&
-    !env.TELEGRAM_DEBOUNCE_MS &&
-    !env.TELEGRAM_CUSTOM_MESSAGE
+    !configEntries.TELEGRAM_DEBOUNCE_MS &&
+    !configEntries.TELEGRAM_CUSTOM_MESSAGE
   ) {
     return undefined;
   }
@@ -58,9 +62,9 @@ function readTelegramConfigFromEnv(env: Record<string, string | undefined>) {
   return {
     botToken,
     chatId,
-    customMessage: env.TELEGRAM_CUSTOM_MESSAGE,
+    customMessage: configEntries.TELEGRAM_CUSTOM_MESSAGE,
     debounceMs: parseIntegerInRange(
-      env.TELEGRAM_DEBOUNCE_MS,
+      configEntries.TELEGRAM_DEBOUNCE_MS,
       5_000,
       "TELEGRAM_DEBOUNCE_MS",
       0,

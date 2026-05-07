@@ -1,4 +1,9 @@
-export { readConfigFromEnv } from "./src/config";
+export { readConfig, readConfigFromEnv } from "./src/config";
+export {
+  createDatabaseStartupError,
+  createElectrsDuressRuntime,
+  createRuntimeNotificationService,
+} from "./src/app";
 export { startFromEnv } from "./src/cli";
 export { createDatabase, getDatabaseFileName } from "./src/db/client";
 export { createConfigRepository } from "./src/db/config-repository";
@@ -9,6 +14,11 @@ export {
 export { createXpubWatchService } from "./src/xpub-watch-service";
 export { createElectrumProxy, formatUpstream } from "./src/proxy";
 export type { ElectrsDatabase } from "./src/db/client";
+export type {
+  CreateElectrsDuressRuntimeOptions,
+  ElectrsDuressRuntime,
+} from "./src/app";
+export type { ConfigRecord } from "./src/config";
 export type { ConfigRepository } from "./src/db/config-repository";
 export type { ConfigEntry, NewConfigEntry } from "./src/db/schema";
 export type {

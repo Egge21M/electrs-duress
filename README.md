@@ -118,9 +118,10 @@ Watched matches are published through `NotificationService.notify()`.
 `NotificationHandler` implementations can register with the service and run
 their own side effects.
 
-The default notification service registers a console handler. If Telegram
-settings are present in `config_entries`, the proxy also registers a Telegram
-handler.
+The runtime composition layer creates the default notification service with a
+console handler. If Telegram settings are present in `config_entries`, that
+layer also registers a Telegram handler. The TCP proxy receives the composed
+notification service instead of constructing handlers itself.
 
 ## Telegram
 
@@ -179,15 +180,21 @@ use local sockets and fake Telegram senders.
 - `packages/server/package.json` owns the server runtime dependencies and
   package-local scripts.
 - `packages/server/index.ts` is the public export surface and CLI entrypoint.
-- `packages/server/src/config.ts` parses SQLite-backed configuration records.
+- `packages/server/src/app.ts` composes the database, repositories, config,
+  watch service, notification service, and TCP proxy into the runtime used by
+  the CLI and future API layers.
+- `packages/server/src/config.ts` parses string-backed configuration records
+  into typed proxy settings.
 - `packages/server/src/proxy.ts` owns socket forwarding and upstream TLS/TCP
-  connections.
+  connections. It does not create database repositories or notification
+  handlers.
 - `packages/server/src/electrum-observer.ts` parses Electrum JSON-RPC lines and
   reports address data requests.
 - `packages/server/src/xpub-watch.ts` derives watched addresses using
   `@scure/bip32` and maps them to Electrum script hashes.
+- `packages/server/src/xpub-watch-service.ts` owns the active watch-source
+  lifecycle and the in-memory script-hash index.
 - `packages/server/src/notification-service.ts` publishes watched-hash
-  notifications to
-  registered handlers.
+  notifications to registered handlers.
 - `packages/server/src/telegram-notification-handler.ts` sends debounced
   Telegram alerts through grammY.

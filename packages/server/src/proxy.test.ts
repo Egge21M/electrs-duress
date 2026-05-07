@@ -1,6 +1,10 @@
 import { afterEach, expect, test } from "bun:test";
 import net, { type Server, type Socket } from "node:net";
-import { NotificationService, type Notification } from "./notification-service";
+import {
+  createDefaultNotificationService,
+  NotificationService,
+  type Notification,
+} from "./notification-service";
 import { createElectrumProxy, type ScriptHashWatchService } from "./proxy";
 import type { WatchedAddress } from "./xpub-watch";
 
@@ -56,6 +60,10 @@ test("alerts when a watched script-hash is requested", async () => {
       log: (message) => logs.push(message),
       error: (message) => logs.push(message),
     },
+    notificationService: createDefaultNotificationService({
+      log: (message) => logs.push(message),
+      error: (message) => logs.push(message),
+    }),
     watchService: createStaticWatchService([watchedAddress]),
   });
 
@@ -119,6 +127,10 @@ test("does not alert when an unwatched script-hash is requested", async () => {
       log: (message) => logs.push(message),
       error: (message) => logs.push(message),
     },
+    notificationService: createDefaultNotificationService({
+      log: (message) => logs.push(message),
+      error: (message) => logs.push(message),
+    }),
     watchService: createStaticWatchService([watchedAddress]),
   });
 
@@ -183,6 +195,10 @@ test("logs unwatched address requests only when explicitly enabled", async () =>
       log: (message) => logs.push(message),
       error: (message) => logs.push(message),
     },
+    notificationService: createDefaultNotificationService({
+      log: (message) => logs.push(message),
+      error: (message) => logs.push(message),
+    }),
     watchService: createStaticWatchService([watchedAddress]),
   });
 
@@ -319,6 +335,10 @@ test("alerts when a watched script-hash subscription is requested", async () => 
       log: (message) => logs.push(message),
       error: (message) => logs.push(message),
     },
+    notificationService: createDefaultNotificationService({
+      log: (message) => logs.push(message),
+      error: (message) => logs.push(message),
+    }),
     watchService: createStaticWatchService([watchedAddress]),
   });
 

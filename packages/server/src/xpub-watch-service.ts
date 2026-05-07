@@ -42,15 +42,19 @@ export function createXpubWatchService(
   const activeSourcesByXpub = new Map<string, DerivedWatchSource>();
   let matchesByScriptHash = new Map<string, ActiveWatchedAddress[]>();
 
-  const activate = (source: XpubWatchSource) => {
+  const deriveSource = (source: XpubWatchSource): DerivedWatchSource => {
     const watch = deriveWatch(source);
-    activeSourcesByXpub.set(source.xpub, {
+    return {
       source,
       addresses: watch.addresses.map((address) => ({
         ...address,
         ...(source.label ? { sourceLabel: source.label } : {}),
       })),
-    });
+    };
+  };
+
+  const activate = (source: XpubWatchSource) => {
+    activeSourcesByXpub.set(source.xpub, deriveSource(source));
     rebuildIndex();
   };
 
@@ -100,7 +104,7 @@ export function createXpubWatchService(
     init() {
       activeSourcesByXpub.clear();
       for (const source of repository.listEnabled()) {
-        activate(source);
+        activeSourcesByXpub.set(source.xpub, deriveSource(source));
       }
       rebuildIndex();
     },

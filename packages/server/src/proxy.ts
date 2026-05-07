@@ -1,11 +1,7 @@
 import net, { type Server, type Socket } from "node:net";
 import tls from "node:tls";
 import { createElectrumRequestObserver } from "./electrum-observer";
-import {
-  createDefaultNotificationService,
-  type NotificationService,
-} from "./notification-service";
-import { createTelegramNotificationHandler } from "./telegram-notification-handler";
+import type { NotificationService } from "./notification-service";
 import type { WatchedAddress } from "./xpub-watch";
 import type { ElectrumProxyConfig, Logger, UpstreamEndpoint } from "./types";
 
@@ -13,25 +9,31 @@ export interface ScriptHashWatchService {
   matchScriptHash(scriptHash: string): WatchedAddress[];
 }
 
-export interface CreateElectrumProxyOptions {
+interface ElectrumProxyBaseOptions {
   config: ElectrumProxyConfig;
   logger?: Logger;
-  notificationService?: NotificationService;
-  watchService?: ScriptHashWatchService;
 }
+
+interface ElectrumProxyWithWatchServiceOptions extends ElectrumProxyBaseOptions {
+  notificationService: NotificationService;
+  watchService: ScriptHashWatchService;
+}
+
+interface ElectrumProxyWithoutWatchServiceOptions
+  extends ElectrumProxyBaseOptions {
+  notificationService?: NotificationService;
+  watchService?: undefined;
+}
+
+export type CreateElectrumProxyOptions =
+  | ElectrumProxyWithWatchServiceOptions
+  | ElectrumProxyWithoutWatchServiceOptions;
 
 export function createElectrumProxy(
   options: CreateElectrumProxyOptions,
 ): Server {
   const { config } = options;
   const logger = options.logger ?? console;
-  const notificationService =
-    options.notificationService ?? createDefaultNotificationService(logger);
-  if (config.telegram) {
-    notificationService.register(
-      createTelegramNotificationHandler(config.telegram, logger),
-    );
-  }
 
   const server = net.createServer((walletSocket) => {
     const clientLabel = formatRemote(walletSocket);
@@ -45,7 +47,7 @@ export function createElectrumProxy(
         maybeNotifyWatchedScriptHashRequest(
           request,
           options.watchService,
-          notificationService,
+          options.notificationService,
           logger,
         );
         if (config.logAddressRequests) {
@@ -108,11 +110,12 @@ function maybeNotifyWatchedScriptHashRequest(
     target: unknown;
   },
   watchService: ScriptHashWatchService | undefined,
-  notificationService: NotificationService,
+  notificationService: NotificationService | undefined,
   logger: Logger,
 ) {
   if (
     !watchService ||
+    !notificationService ||
     !request.method.startsWith("blockchain.scripthash.") ||
     typeof request.target !== "string"
   ) {

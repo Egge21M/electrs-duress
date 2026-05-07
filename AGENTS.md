@@ -5,10 +5,11 @@
 `electrs-duress` is a Bun workspace. The root `package.json` only coordinates
 workspace scripts. The server package lives in `packages/server`; its
 `index.ts` is both the public export surface and CLI entrypoint. Runtime modules
-live in `packages/server/src/`: `config.ts` parses SQLite-backed config records,
-`proxy.ts` owns socket forwarding, `electrum-observer.ts` parses Electrum
-JSON-RPC requests, and notification modules publish console or Telegram alerts.
-Tests are colocated as `*.test.ts`.
+live in `packages/server/src/`: `app.ts` composes database repositories, config,
+watch services, notifications, and the proxy; `config.ts` parses string-backed
+config records; `proxy.ts` owns socket forwarding; `electrum-observer.ts` parses
+Electrum JSON-RPC requests; and notification modules publish console or Telegram
+alerts. Tests are colocated as `*.test.ts`.
 
 ## Build, Test, and Development Commands
 

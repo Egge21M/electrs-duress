@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
-import { readConfigFromEnv } from "./config";
+import { readConfig, readConfigFromEnv } from "./config";
 
-test("reads proxy config defaults from an empty environment", () => {
-  expect(readConfigFromEnv({})).toEqual({
+test("reads proxy config defaults from empty config records", () => {
+  expect(readConfig({})).toEqual({
     listen: {
       host: "127.0.0.1",
       port: 60001,
@@ -17,9 +17,9 @@ test("reads proxy config defaults from an empty environment", () => {
   });
 });
 
-test("reads proxy config overrides from the environment", () => {
+test("reads proxy config overrides from config records", () => {
   expect(
-    readConfigFromEnv({
+    readConfig({
       LISTEN_HOST: "0.0.0.0",
       LISTEN_PORT: "61001",
       ELECTRUM_HOST: "btc1.shiftcrypto.io",
@@ -54,14 +54,14 @@ test("reads proxy config overrides from the environment", () => {
 });
 
 test("rejects invalid port values", () => {
-  expect(() => readConfigFromEnv({ LISTEN_PORT: "nope" })).toThrow(
+  expect(() => readConfig({ LISTEN_PORT: "nope" })).toThrow(
     "LISTEN_PORT must be a TCP port between 1 and 65535",
   );
 });
 
 test("rejects invalid address request log flags", () => {
   expect(() =>
-    readConfigFromEnv({
+    readConfig({
       LOG_ADDRESS_REQUESTS: "sometimes",
     }),
   ).toThrow("LOG_ADDRESS_REQUESTS must be true or false");
@@ -69,7 +69,7 @@ test("rejects invalid address request log flags", () => {
 
 test("requires a Telegram chat id when a bot token is configured", () => {
   expect(() =>
-    readConfigFromEnv({
+    readConfig({
       TELEGRAM_BOT_TOKEN: "bot-token",
     }),
   ).toThrow("TELEGRAM_CHAT_ID is required when Telegram is configured");
@@ -77,8 +77,12 @@ test("requires a Telegram chat id when a bot token is configured", () => {
 
 test("requires a Telegram bot token when a chat id is configured", () => {
   expect(() =>
-    readConfigFromEnv({
+    readConfig({
       TELEGRAM_CHAT_ID: "12345",
     }),
   ).toThrow("TELEGRAM_BOT_TOKEN is required when Telegram is configured");
+});
+
+test("keeps readConfigFromEnv as a compatibility alias", () => {
+  expect(readConfigFromEnv).toBe(readConfig);
 });
