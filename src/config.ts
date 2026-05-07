@@ -55,7 +55,12 @@ function readTelegramConfigFromEnv(env: Record<string, string | undefined>) {
   const botToken = env.TELEGRAM_BOT_TOKEN;
   const chatId = env.TELEGRAM_CHAT_ID;
 
-  if (!botToken && !chatId && !env.TELEGRAM_DEBOUNCE_MS) {
+  if (
+    !botToken &&
+    !chatId &&
+    !env.TELEGRAM_DEBOUNCE_MS &&
+    !env.TELEGRAM_CUSTOM_MESSAGE
+  ) {
     return undefined;
   }
 
@@ -70,6 +75,7 @@ function readTelegramConfigFromEnv(env: Record<string, string | undefined>) {
   return {
     botToken,
     chatId,
+    customMessage: env.TELEGRAM_CUSTOM_MESSAGE,
     debounceMs: parseIntegerInRange(
       env.TELEGRAM_DEBOUNCE_MS,
       5_000,

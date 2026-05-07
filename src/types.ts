@@ -19,6 +19,7 @@ export interface ElectrumProxyConfig {
 export interface TelegramNotificationConfig {
   botToken: string;
   chatId: string;
+  customMessage?: string;
   debounceMs: number;
 }
 

@@ -10,6 +10,7 @@ export interface TelegramMessageSender {
 
 export interface TelegramNotificationHandlerOptions {
   chatId: string;
+  customMessage?: string;
   debounceMs: number;
   logger?: Logger;
   sender: TelegramMessageSender;
@@ -17,21 +18,23 @@ export interface TelegramNotificationHandlerOptions {
 
 export class TelegramNotificationHandler implements NotificationHandler {
   readonly #chatId: string;
+  readonly #customMessage: string | undefined;
   readonly #debounceMs: number;
   readonly #logger: Logger | undefined;
-  readonly #pending: string[] = [];
+  readonly #pending: Notification[] = [];
   readonly #sender: TelegramMessageSender;
   #timer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(options: TelegramNotificationHandlerOptions) {
     this.#chatId = options.chatId;
+    this.#customMessage = options.customMessage;
     this.#debounceMs = options.debounceMs;
     this.#logger = options.logger;
     this.#sender = options.sender;
   }
 
   handle(notification: Notification) {
-    this.#pending.push(formatNotification(notification));
+    this.#pending.push(notification);
     this.#scheduleFlush();
   }
 
@@ -46,13 +49,8 @@ export class TelegramNotificationHandler implements NotificationHandler {
       return;
     }
 
-    const message = [
-      `electrs-duress alert: ${pending.length} watched request${
-        pending.length === 1 ? "" : "s"
-      }`,
-      "",
-      ...pending,
-    ].join("\n");
+    const message =
+      this.#customMessage ?? formatNotificationBatch(pending);
 
     try {
       for (const chunk of chunkMessage(message)) {
@@ -85,6 +83,7 @@ export function createTelegramNotificationHandler(
   const bot = new Bot(config.botToken);
   return new TelegramNotificationHandler({
     chatId: config.chatId,
+    customMessage: config.customMessage,
     debounceMs: config.debounceMs,
     logger,
     sender: {
@@ -93,6 +92,16 @@ export function createTelegramNotificationHandler(
       },
     },
   });
+}
+
+function formatNotificationBatch(notifications: Notification[]) {
+  return [
+    `electrs-duress alert: ${notifications.length} watched request${
+      notifications.length === 1 ? "" : "s"
+    }`,
+    "",
+    ...notifications.map(formatNotification),
+  ].join("\n");
 }
 
 function formatNotification(notification: Notification) {

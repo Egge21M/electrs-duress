@@ -29,6 +29,7 @@ test("reads proxy config overrides from the environment", () => {
       LOG_ADDRESS_REQUESTS: "true",
       TELEGRAM_BOT_TOKEN: "bot-token",
       TELEGRAM_CHAT_ID: "12345",
+      TELEGRAM_CUSTOM_MESSAGE: "custom alert",
       TELEGRAM_DEBOUNCE_MS: "2500",
       WATCH_XPUB: "xpub-example",
       WATCH_ADDRESS_COUNT: "20",
@@ -49,6 +50,7 @@ test("reads proxy config overrides from the environment", () => {
     telegram: {
       botToken: "bot-token",
       chatId: "12345",
+      customMessage: "custom alert",
       debounceMs: 2500,
     },
     watch: {

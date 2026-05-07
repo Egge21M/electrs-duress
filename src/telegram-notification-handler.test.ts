@@ -72,6 +72,64 @@ test("resets the debounce timer when new notifications arrive", async () => {
   expect(sent[0]?.text).toContain("2 watched requests");
 });
 
+test("sends a custom Telegram message instead of formatted alert details", async () => {
+  const sent: Array<{ chatId: string; text: string }> = [];
+  const sender: TelegramMessageSender = {
+    async sendMessage(chatId, text) {
+      sent.push({ chatId, text });
+    },
+  };
+  const handler = new TelegramNotificationHandler({
+    chatId: "12345",
+    customMessage: "custom warning",
+    debounceMs: 10,
+    sender,
+  });
+
+  handler.handle(notification(1));
+  handler.handle(notification(2));
+
+  await sleep(25);
+
+  expect(sent).toEqual([
+    {
+      chatId: "12345",
+      text: "custom warning",
+    },
+  ]);
+});
+
+test("still debounces custom Telegram messages", async () => {
+  const sent: Array<{ chatId: string; text: string }> = [];
+  const sender: TelegramMessageSender = {
+    async sendMessage(chatId, text) {
+      sent.push({ chatId, text });
+    },
+  };
+  const handler = new TelegramNotificationHandler({
+    chatId: "12345",
+    customMessage: "custom warning",
+    debounceMs: 20,
+    sender,
+  });
+
+  handler.handle(notification(1));
+  await sleep(15);
+  handler.handle(notification(2));
+  await sleep(10);
+
+  expect(sent).toEqual([]);
+
+  await sleep(20);
+
+  expect(sent).toEqual([
+    {
+      chatId: "12345",
+      text: "custom warning",
+    },
+  ]);
+});
+
 test("flushes pending Telegram notifications immediately when requested", async () => {
   const sent: Array<{ chatId: string; text: string }> = [];
   const sender: TelegramMessageSender = {

@@ -79,6 +79,8 @@ TELEGRAM_BOT_TOKEN=123:abc TELEGRAM_CHAT_ID=123456789 bun run start
 
 Optional Telegram setting:
 
+- `TELEGRAM_CUSTOM_MESSAGE` sends this exact text instead of the generated alert
+  details.
 - `TELEGRAM_DEBOUNCE_MS` changes the quiet period. Default: `5000`.
 
 Non-alert address request logging is disabled by default. Set
