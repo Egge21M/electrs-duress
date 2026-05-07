@@ -45,6 +45,7 @@ test("alerts when a watched script-hash is requested", async () => {
         tls: false,
         tlsRejectUnauthorized: true,
       },
+      logAddressRequests: false,
       watch: {
         xpub: fixtureXpub,
         addressCount: 1,
@@ -111,6 +112,7 @@ test("does not alert when an unwatched script-hash is requested", async () => {
         tls: false,
         tlsRejectUnauthorized: true,
       },
+      logAddressRequests: false,
       watch: {
         xpub: fixtureXpub,
         addressCount: 1,
@@ -151,6 +153,69 @@ test("does not alert when an unwatched script-hash is requested", async () => {
         `method=blockchain.scripthash.get_balance target=${unwatchedScriptHash} id=1`,
       ),
     ),
+  ).toBe(false);
+});
+
+test("logs unwatched address requests only when explicitly enabled", async () => {
+  const logs: string[] = [];
+  const upstream = net.createServer((socket) => {
+    socket.on("data", () => {
+      socket.write('{"id":1,"result":{"confirmed":0,"unconfirmed":0}}\n');
+    });
+  });
+
+  await listen(upstream, "127.0.0.1", 0);
+  servers.push(upstream);
+
+  const upstreamAddress = tcpAddress(upstream);
+  const proxy = createElectrumProxy({
+    config: {
+      listen: {
+        host: "127.0.0.1",
+        port: 0,
+      },
+      upstream: {
+        host: "127.0.0.1",
+        port: upstreamAddress.port,
+        tls: false,
+        tlsRejectUnauthorized: true,
+      },
+      logAddressRequests: true,
+      watch: {
+        xpub: fixtureXpub,
+        addressCount: 1,
+        chain: 0,
+      },
+    },
+    logger: {
+      log: (message) => logs.push(message),
+      error: (message) => logs.push(message),
+    },
+  });
+
+  await listen(proxy, "127.0.0.1", 0);
+  servers.push(proxy);
+
+  const proxyAddress = tcpAddress(proxy);
+  const walletSocket = await connect("127.0.0.1", proxyAddress.port);
+  sockets.push(walletSocket);
+
+  walletSocket.write(
+    `${JSON.stringify({
+      id: 1,
+      method: "blockchain.scripthash.get_balance",
+      params: [unwatchedScriptHash],
+    })}\n`,
+  );
+
+  await readJsonLine(walletSocket, 5_000);
+
+  expect(
+    logs.some((line) =>
+      line.includes(
+        `method=blockchain.scripthash.get_balance target=${unwatchedScriptHash} id=1`,
+      ),
+    ),
   ).toBe(true);
 });
 
@@ -185,6 +250,7 @@ test("notifies registered handlers when a watched script-hash is requested", asy
         tls: false,
         tlsRejectUnauthorized: true,
       },
+      logAddressRequests: false,
       watch: {
         xpub: fixtureXpub,
         addressCount: 1,
@@ -261,6 +327,7 @@ test("alerts when a watched script-hash subscription is requested", async () => 
         tls: false,
         tlsRejectUnauthorized: true,
       },
+      logAddressRequests: false,
       watch: {
         xpub: fixtureXpub,
         addressCount: 1,

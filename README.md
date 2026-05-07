@@ -66,6 +66,14 @@ Custom `NotificationHandler` implementations can register with the service to
 trigger their own side effects. The default service registers a console handler
 that emits the alert shown above.
 
+Non-alert address request logging is disabled by default. Set
+`LOG_ADDRESS_REQUESTS=true` to also print every observed address or script-hash
+request:
+
+```bash
+LOG_ADDRESS_REQUESTS=true bun run start
+```
+
 Logged methods include the common address and script-hash query methods:
 
 ```text

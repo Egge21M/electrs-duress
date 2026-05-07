@@ -32,6 +32,11 @@ export function readConfigFromEnv(
         "ELECTRUM_TLS_REJECT_UNAUTHORIZED",
       ),
     },
+    logAddressRequests: parseBoolean(
+      env.LOG_ADDRESS_REQUESTS,
+      false,
+      "LOG_ADDRESS_REQUESTS",
+    ),
   };
 
   if (watch) {

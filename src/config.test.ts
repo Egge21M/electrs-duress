@@ -13,6 +13,7 @@ test("reads proxy config defaults from an empty environment", () => {
       tls: false,
       tlsRejectUnauthorized: true,
     },
+    logAddressRequests: false,
   });
 });
 
@@ -25,6 +26,7 @@ test("reads proxy config overrides from the environment", () => {
       ELECTRUM_PORT: "443",
       ELECTRUM_TLS: "true",
       ELECTRUM_TLS_REJECT_UNAUTHORIZED: "false",
+      LOG_ADDRESS_REQUESTS: "true",
       WATCH_XPUB: "xpub-example",
       WATCH_ADDRESS_COUNT: "20",
       WATCH_CHAIN: "1",
@@ -40,6 +42,7 @@ test("reads proxy config overrides from the environment", () => {
       tls: true,
       tlsRejectUnauthorized: false,
     },
+    logAddressRequests: true,
     watch: {
       xpub: "xpub-example",
       addressCount: 20,
@@ -61,4 +64,12 @@ test("rejects invalid watch address counts", () => {
       WATCH_ADDRESS_COUNT: "0",
     }),
   ).toThrow("WATCH_ADDRESS_COUNT must be an integer between 1 and 10000");
+});
+
+test("rejects invalid address request log flags", () => {
+  expect(() =>
+    readConfigFromEnv({
+      LOG_ADDRESS_REQUESTS: "sometimes",
+    }),
+  ).toThrow("LOG_ADDRESS_REQUESTS must be true or false");
 });

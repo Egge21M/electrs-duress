@@ -11,6 +11,7 @@ export interface UpstreamEndpoint extends Endpoint {
 export interface ElectrumProxyConfig {
   listen: Endpoint;
   upstream: UpstreamEndpoint;
+  logAddressRequests: boolean;
   watch?: WatchConfig;
 }
 

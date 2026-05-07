@@ -28,6 +28,7 @@ test("forwards Electrum requests to btc1.shiftcrypto.io:443 and logs script-hash
         tls: true,
         tlsRejectUnauthorized: false,
       },
+      logAddressRequests: true,
     },
     logger: {
       log: (message) => logs.push(message),

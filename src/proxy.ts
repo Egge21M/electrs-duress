@@ -38,11 +38,13 @@ export function createElectrumProxy(
           notificationService,
           logger,
         );
-        logger.log(
-          `[address request] client=${request.clientLabel} method=${request.method} target=${String(
-            request.target,
-          )} id=${String(request.id ?? "notification")}`,
-        );
+        if (config.logAddressRequests) {
+          logger.log(
+            `[address request] client=${request.clientLabel} method=${request.method} target=${String(
+              request.target,
+            )} id=${String(request.id ?? "notification")}`,
+          );
+        }
       },
     );
 
