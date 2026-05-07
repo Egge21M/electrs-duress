@@ -53,4 +53,14 @@ blockchain.address.listunspent
 blockchain.address.subscribe
 ```
 
+## Project layout
+
+- `index.ts` is the public export surface and CLI entrypoint.
+- `src/config.ts` parses environment configuration.
+- `src/proxy.ts` owns socket forwarding and upstream TLS/TCP connections.
+- `src/electrum-observer.ts` parses Electrum JSON-RPC lines and reports address
+  data requests.
+- `src/*.test.ts` cover local behavior; `index.test.ts` is the live integration
+  test against `btc1.shiftcrypto.io:443`.
+
 This project was created using `bun init` in bun v1.3.11. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.

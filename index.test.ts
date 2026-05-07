@@ -17,12 +17,18 @@ test("forwards Electrum requests to btc1.shiftcrypto.io:443 and logs script-hash
   const logs: string[] = [];
   const scriptHash = "0".repeat(64);
   const proxy = createElectrumProxy({
-    listenHost: "127.0.0.1",
-    listenPort: 0,
-    upstreamHost: "btc1.shiftcrypto.io",
-    upstreamPort: 443,
-    upstreamTls: true,
-    upstreamTlsRejectUnauthorized: false,
+    config: {
+      listen: {
+        host: "127.0.0.1",
+        port: 0,
+      },
+      upstream: {
+        host: "btc1.shiftcrypto.io",
+        port: 443,
+        tls: true,
+        tlsRejectUnauthorized: false,
+      },
+    },
     logger: {
       log: (message) => logs.push(message),
       error: (message) => logs.push(message),
