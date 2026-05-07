@@ -66,6 +66,21 @@ Custom `NotificationHandler` implementations can register with the service to
 trigger their own side effects. The default service registers a console handler
 that emits the alert shown above.
 
+## Telegram alerts
+
+Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` to automatically register a
+Telegram notification handler through [grammY](https://grammy.dev/). Telegram
+alerts are debounced: the handler waits for 5 seconds of silence, then sends all
+queued alerts as a single message.
+
+```bash
+TELEGRAM_BOT_TOKEN=123:abc TELEGRAM_CHAT_ID=123456789 bun run start
+```
+
+Optional Telegram setting:
+
+- `TELEGRAM_DEBOUNCE_MS` changes the quiet period. Default: `5000`.
+
 Non-alert address request logging is disabled by default. Set
 `LOG_ADDRESS_REQUESTS=true` to also print every observed address or script-hash
 request:
@@ -100,6 +115,8 @@ blockchain.address.subscribe
   them to Electrum script hashes.
 - `src/notification-service.ts` publishes watched-address notifications to
   registered handlers.
+- `src/telegram-notification-handler.ts` sends debounced Telegram alerts through
+  grammY when Telegram env vars are configured.
 - `src/*.test.ts` cover local behavior; `index.test.ts` is the live integration
   test against `btc1.shiftcrypto.io:443`.
 

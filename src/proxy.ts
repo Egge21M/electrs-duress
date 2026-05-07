@@ -5,6 +5,7 @@ import {
   createDefaultNotificationService,
   type NotificationService,
 } from "./notification-service";
+import { createTelegramNotificationHandler } from "./telegram-notification-handler";
 import { createXpubWatch, type XpubWatch } from "./xpub-watch";
 import type { ElectrumProxyConfig, Logger, UpstreamEndpoint } from "./types";
 
@@ -22,6 +23,11 @@ export function createElectrumProxy(
   const watch = config.watch ? createXpubWatch(config.watch) : undefined;
   const notificationService =
     options.notificationService ?? createDefaultNotificationService(logger);
+  if (config.telegram) {
+    notificationService.register(
+      createTelegramNotificationHandler(config.telegram, logger),
+    );
+  }
 
   const server = net.createServer((walletSocket) => {
     const clientLabel = formatRemote(walletSocket);

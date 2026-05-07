@@ -12,7 +12,14 @@ export interface ElectrumProxyConfig {
   listen: Endpoint;
   upstream: UpstreamEndpoint;
   logAddressRequests: boolean;
+  telegram?: TelegramNotificationConfig;
   watch?: WatchConfig;
+}
+
+export interface TelegramNotificationConfig {
+  botToken: string;
+  chatId: string;
+  debounceMs: number;
 }
 
 export interface WatchConfig {

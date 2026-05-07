@@ -3,6 +3,7 @@ import type { ElectrumProxyConfig } from "./types";
 export function readConfigFromEnv(
   env: Record<string, string | undefined>,
 ): ElectrumProxyConfig {
+  const telegram = readTelegramConfigFromEnv(env);
   const watch = env.WATCH_XPUB
     ? {
         xpub: env.WATCH_XPUB,
@@ -39,11 +40,44 @@ export function readConfigFromEnv(
     ),
   };
 
+  if (telegram) {
+    config.telegram = telegram;
+  }
+
   if (watch) {
     config.watch = watch;
   }
 
   return config;
+}
+
+function readTelegramConfigFromEnv(env: Record<string, string | undefined>) {
+  const botToken = env.TELEGRAM_BOT_TOKEN;
+  const chatId = env.TELEGRAM_CHAT_ID;
+
+  if (!botToken && !chatId && !env.TELEGRAM_DEBOUNCE_MS) {
+    return undefined;
+  }
+
+  if (!botToken) {
+    throw new Error("TELEGRAM_BOT_TOKEN is required when Telegram is configured");
+  }
+
+  if (!chatId) {
+    throw new Error("TELEGRAM_CHAT_ID is required when Telegram is configured");
+  }
+
+  return {
+    botToken,
+    chatId,
+    debounceMs: parseIntegerInRange(
+      env.TELEGRAM_DEBOUNCE_MS,
+      5_000,
+      "TELEGRAM_DEBOUNCE_MS",
+      0,
+      60_000,
+    ),
+  };
 }
 
 function parsePort(value: string | undefined, fallback: number, name: string) {

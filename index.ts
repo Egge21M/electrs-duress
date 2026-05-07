@@ -7,7 +7,15 @@ export {
   createDefaultNotificationService,
   NotificationService,
 } from "./src/notification-service";
+export {
+  createTelegramNotificationHandler,
+  TelegramNotificationHandler,
+} from "./src/telegram-notification-handler";
 export { createXpubWatch } from "./src/xpub-watch";
+export type {
+  TelegramMessageSender,
+  TelegramNotificationHandlerOptions,
+} from "./src/telegram-notification-handler";
 export type {
   Notification,
   NotificationHandler,
@@ -17,6 +25,7 @@ export type {
   ElectrumProxyConfig,
   Endpoint,
   Logger,
+  TelegramNotificationConfig,
   UpstreamEndpoint,
   WatchConfig,
 } from "./src/types";

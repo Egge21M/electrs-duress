@@ -27,6 +27,9 @@ test("reads proxy config overrides from the environment", () => {
       ELECTRUM_TLS: "true",
       ELECTRUM_TLS_REJECT_UNAUTHORIZED: "false",
       LOG_ADDRESS_REQUESTS: "true",
+      TELEGRAM_BOT_TOKEN: "bot-token",
+      TELEGRAM_CHAT_ID: "12345",
+      TELEGRAM_DEBOUNCE_MS: "2500",
       WATCH_XPUB: "xpub-example",
       WATCH_ADDRESS_COUNT: "20",
       WATCH_CHAIN: "1",
@@ -43,6 +46,11 @@ test("reads proxy config overrides from the environment", () => {
       tlsRejectUnauthorized: false,
     },
     logAddressRequests: true,
+    telegram: {
+      botToken: "bot-token",
+      chatId: "12345",
+      debounceMs: 2500,
+    },
     watch: {
       xpub: "xpub-example",
       addressCount: 20,
@@ -72,4 +80,20 @@ test("rejects invalid address request log flags", () => {
       LOG_ADDRESS_REQUESTS: "sometimes",
     }),
   ).toThrow("LOG_ADDRESS_REQUESTS must be true or false");
+});
+
+test("requires a Telegram chat id when a bot token is configured", () => {
+  expect(() =>
+    readConfigFromEnv({
+      TELEGRAM_BOT_TOKEN: "bot-token",
+    }),
+  ).toThrow("TELEGRAM_CHAT_ID is required when Telegram is configured");
+});
+
+test("requires a Telegram bot token when a chat id is configured", () => {
+  expect(() =>
+    readConfigFromEnv({
+      TELEGRAM_CHAT_ID: "12345",
+    }),
+  ).toThrow("TELEGRAM_BOT_TOKEN is required when Telegram is configured");
 });
