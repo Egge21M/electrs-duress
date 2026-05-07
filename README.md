@@ -40,10 +40,11 @@ LISTEN_PORT=60001 ELECTRUM_HOST=btc1.shiftcrypto.io ELECTRUM_PORT=443 ELECTRUM_T
 
 ## Watched xpub alerts
 
-Set `WATCH_XPUB` to derive watched addresses at startup. The proxy derives the
-first 200 external-chain P2PKH addresses from that xpub, computes their Electrum
-script hashes, and emits an alert if the wallet requests a balance for one of
-those hashes:
+Set `WATCH_XPUB` to derive watched addresses at startup. The proxy supports
+`xpub`/`tpub` P2PKH watches and `zpub`/`vpub` native SegWit P2WPKH watches. It
+derives the first 200 external-chain addresses, computes their Electrum script
+hashes, and emits an alert if the wallet sends any `blockchain.scripthash.*`
+request for one of those hashes:
 
 ```bash
 WATCH_XPUB=xpub... bun run start
@@ -57,8 +58,13 @@ Optional watch settings:
 Alert example:
 
 ```text
-[alert] watched address balance requested client=127.0.0.1:12345 address=1... path=m/0/0 scripthash=... id=1
+[alert] watched script-hash requested client=127.0.0.1:12345 method=blockchain.scripthash.subscribe address=1... path=m/0/0 scripthash=... id=1
 ```
+
+Internally, watched matches are published through `NotificationService.notify()`.
+Custom `NotificationHandler` implementations can register with the service to
+trigger their own side effects. The default service registers a console handler
+that emits the alert shown above.
 
 Logged methods include the common address and script-hash query methods:
 
@@ -84,6 +90,8 @@ blockchain.address.subscribe
   data requests.
 - `src/xpub-watch.ts` derives watched addresses using `@scure/bip32` and maps
   them to Electrum script hashes.
+- `src/notification-service.ts` publishes watched-address notifications to
+  registered handlers.
 - `src/*.test.ts` cover local behavior; `index.test.ts` is the live integration
   test against `btc1.shiftcrypto.io:443`.
 

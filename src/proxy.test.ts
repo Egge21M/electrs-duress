@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
 import net, { type Server, type Socket } from "node:net";
+import { NotificationService, type Notification } from "./notification-service";
 import { createElectrumProxy } from "./proxy";
 
 const fixtureXpub =
@@ -20,7 +21,7 @@ afterEach(async () => {
   await Promise.all(servers.splice(0).map(closeServer));
 });
 
-test("alerts when a watched script-hash balance is requested", async () => {
+test("alerts when a watched script-hash is requested", async () => {
   const logs: string[] = [];
   const upstream = net.createServer((socket) => {
     socket.on("data", () => {
@@ -76,8 +77,9 @@ test("alerts when a watched script-hash balance is requested", async () => {
   expect(
     logs.some((line) =>
       line.includes(
-        `[alert] watched address balance requested client=`,
+        `[alert] watched script-hash requested client=`,
       ) &&
+      line.includes("method=blockchain.scripthash.get_balance") &&
       line.includes("address=1Exq3M51dXqk8eHnosigC5DPDVYbxz9934") &&
       line.includes("path=m/0/0") &&
       line.includes(`scripthash=${watchedScriptHash}`),
@@ -85,7 +87,7 @@ test("alerts when a watched script-hash balance is requested", async () => {
   ).toBe(true);
 });
 
-test("does not alert when an unwatched script-hash balance is requested", async () => {
+test("does not alert when an unwatched script-hash is requested", async () => {
   const logs: string[] = [];
   const upstream = net.createServer((socket) => {
     socket.on("data", () => {
@@ -139,7 +141,7 @@ test("does not alert when an unwatched script-hash balance is requested", async 
   await readJsonLine(walletSocket, 5_000);
 
   const alertLogs = logs.filter((line) =>
-    line.includes("[alert] watched address balance requested"),
+    line.includes("[alert] watched script-hash requested"),
   );
 
   expect(alertLogs).toEqual([]);
@@ -148,6 +150,151 @@ test("does not alert when an unwatched script-hash balance is requested", async 
       line.includes(
         `method=blockchain.scripthash.get_balance target=${unwatchedScriptHash} id=1`,
       ),
+    ),
+  ).toBe(true);
+});
+
+test("notifies registered handlers when a watched script-hash is requested", async () => {
+  const logs: string[] = [];
+  const notifications: Notification[] = [];
+  const notificationService = new NotificationService();
+  notificationService.register({
+    handle(notification) {
+      notifications.push(notification);
+    },
+  });
+  const upstream = net.createServer((socket) => {
+    socket.on("data", () => {
+      socket.write('{"id":1,"result":{"confirmed":0,"unconfirmed":0}}\n');
+    });
+  });
+
+  await listen(upstream, "127.0.0.1", 0);
+  servers.push(upstream);
+
+  const upstreamAddress = tcpAddress(upstream);
+  const proxy = createElectrumProxy({
+    config: {
+      listen: {
+        host: "127.0.0.1",
+        port: 0,
+      },
+      upstream: {
+        host: "127.0.0.1",
+        port: upstreamAddress.port,
+        tls: false,
+        tlsRejectUnauthorized: true,
+      },
+      watch: {
+        xpub: fixtureXpub,
+        addressCount: 1,
+        chain: 0,
+      },
+    },
+    logger: {
+      log: (message) => logs.push(message),
+      error: (message) => logs.push(message),
+    },
+    notificationService,
+  });
+
+  await listen(proxy, "127.0.0.1", 0);
+  servers.push(proxy);
+
+  const proxyAddress = tcpAddress(proxy);
+  const walletSocket = await connect("127.0.0.1", proxyAddress.port);
+  sockets.push(walletSocket);
+
+  walletSocket.write(
+    `${JSON.stringify({
+      id: 1,
+      method: "blockchain.scripthash.get_balance",
+      params: [watchedScriptHash],
+    })}\n`,
+  );
+
+  await readJsonLine(walletSocket, 5_000);
+
+  expect(notifications).toEqual([
+    {
+      type: "watched-scripthash-requested",
+      clientLabel: expect.any(String),
+      id: 1,
+      method: "blockchain.scripthash.get_balance",
+      scriptHash: watchedScriptHash,
+      watchedAddress: {
+        address: "1Exq3M51dXqk8eHnosigC5DPDVYbxz9934",
+        index: 0,
+        path: "m/0/0",
+        scriptHash: watchedScriptHash,
+      },
+    },
+  ]);
+  expect(
+    logs.some((line) =>
+      line.includes("[alert] watched script-hash requested"),
+    ),
+  ).toBe(false);
+});
+
+test("alerts when a watched script-hash subscription is requested", async () => {
+  const logs: string[] = [];
+  const upstream = net.createServer((socket) => {
+    socket.on("data", () => {
+      socket.write('{"id":1,"result":"status"}\n');
+    });
+  });
+
+  await listen(upstream, "127.0.0.1", 0);
+  servers.push(upstream);
+
+  const upstreamAddress = tcpAddress(upstream);
+  const proxy = createElectrumProxy({
+    config: {
+      listen: {
+        host: "127.0.0.1",
+        port: 0,
+      },
+      upstream: {
+        host: "127.0.0.1",
+        port: upstreamAddress.port,
+        tls: false,
+        tlsRejectUnauthorized: true,
+      },
+      watch: {
+        xpub: fixtureXpub,
+        addressCount: 1,
+        chain: 0,
+      },
+    },
+    logger: {
+      log: (message) => logs.push(message),
+      error: (message) => logs.push(message),
+    },
+  });
+
+  await listen(proxy, "127.0.0.1", 0);
+  servers.push(proxy);
+
+  const proxyAddress = tcpAddress(proxy);
+  const walletSocket = await connect("127.0.0.1", proxyAddress.port);
+  sockets.push(walletSocket);
+
+  walletSocket.write(
+    `${JSON.stringify({
+      id: 1,
+      method: "blockchain.scripthash.subscribe",
+      params: [watchedScriptHash],
+    })}\n`,
+  );
+
+  await readJsonLine(walletSocket, 5_000);
+
+  expect(
+    logs.some((line) =>
+      line.includes("[alert] watched script-hash requested client=") &&
+      line.includes("method=blockchain.scripthash.subscribe") &&
+      line.includes(`scripthash=${watchedScriptHash}`),
     ),
   ).toBe(true);
 });

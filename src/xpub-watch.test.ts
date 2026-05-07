@@ -3,6 +3,8 @@ import { createXpubWatch } from "./xpub-watch";
 
 const fixtureXpub =
   "xpub6DDeqdmzCpioRhR7fgHQAibbTMNRcPnW1qcYrrtAR5YEAWztVK3G6HuAky6Y3mZzB4UCqVifkXFY2qBUv8rJCHiT1JfoCLtUerZYp653yss";
+const fixtureZpub =
+  "zpub6rxLPGaHrhSuJsarz2U18Wc3e64pvd6Mx7Cj1hrdv3bnvVbmZAYmWj38TjgQ7DBnEDzSeeid342hsNXS5CLqfCMKXgim6c4jU7kkc1C4whf";
 
 test("derives watched P2PKH addresses and Electrum script hashes from an xpub", () => {
   const watch = createXpubWatch({
@@ -49,5 +51,23 @@ test("rejects unsupported extended public key prefixes", () => {
       addressCount: 1,
       chain: 0,
     }),
-  ).toThrow("WATCH_XPUB must start with xpub or tpub");
+  ).toThrow("WATCH_XPUB must start with xpub, tpub, zpub, or vpub");
+});
+
+test("derives watched native SegWit addresses from a zpub", () => {
+  const watch = createXpubWatch({
+    xpub: fixtureZpub,
+    addressCount: 1,
+    chain: 0,
+  });
+
+  expect(watch.addresses).toEqual([
+    {
+      address: "bc1qpcwgeeha9jl8lvtptsjrxk6vtky9tpvve30dsw",
+      index: 0,
+      path: "m/0/0",
+      scriptHash:
+        "75cb97707b5adecee4f9033fb75fc67f13a5d8ef9d32ff041e22308bd35c8fc4",
+    },
+  ]);
 });
