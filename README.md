@@ -1,97 +1,106 @@
 # electrs-duress
 
-`electrs-duress` is a small Electrum TCP proxy that sits between a wallet and an
-electrs-compatible server. It forwards traffic in both directions and logs
-wallet address/script-hash data requests to stdout.
+`electrs-duress` is an Electrum TCP proxy that sits between a wallet and an
+electrs-compatible server. It forwards traffic in both directions, watches for
+configured wallet script hashes, and emits notifications when a watched hash is
+requested.
 
-To install dependencies:
+## Quick Start
+
+Install dependencies:
 
 ```bash
 bun install
 ```
 
-To run:
+Run the proxy:
 
 ```bash
 bun run start
 ```
 
-By default the proxy listens on `127.0.0.1:60001` and forwards to
-`127.0.0.1:50001`. In practice, point `ELECTRUM_PORT` at your real electrs
-server and configure the wallet to connect to `LISTEN_PORT`:
+By default the proxy listens on `127.0.0.1:60001` and forwards plain TCP traffic
+to `127.0.0.1:50001`.
+
+Example TLS upstream using the public ShiftCrypto Electrum endpoint:
 
 ```bash
-LISTEN_PORT=60001 ELECTRUM_HOST=127.0.0.1 ELECTRUM_PORT=50001 bun run start
+LISTEN_PORT=3007 \
+ELECTRUM_HOST=btc1.shiftcrypto.io \
+ELECTRUM_PORT=443 \
+ELECTRUM_TLS=true \
+ELECTRUM_TLS_REJECT_UNAUTHORIZED=false \
+bun run start
 ```
 
-Set `ELECTRUM_TLS=true` when forwarding to a TLS Electrum endpoint such as
-`btc1.shiftcrypto.io:443`:
+Bun automatically loads `.env`, so local testing can be done by placing those
+variables in `.env` and running `bun run start`.
 
-```bash
-LISTEN_PORT=60001 ELECTRUM_HOST=btc1.shiftcrypto.io ELECTRUM_PORT=443 ELECTRUM_TLS=true bun run start
-```
+## Environment
 
-Some Electrum servers use certificates that are not trusted by the local system
-CA store. For those endpoints, set `ELECTRUM_TLS_REJECT_UNAUTHORIZED=false`:
+| Variable | Default | Description |
+| --- | --- | --- |
+| `LISTEN_HOST` | `127.0.0.1` | Local interface the proxy listens on. |
+| `LISTEN_PORT` | `60001` | Local TCP port wallets should connect to. |
+| `ELECTRUM_HOST` | `127.0.0.1` | Upstream Electrum server host. |
+| `ELECTRUM_PORT` | `50001` | Upstream Electrum server port. |
+| `ELECTRUM_TLS` | `false` | Use TLS for upstream Electrum traffic. |
+| `ELECTRUM_TLS_REJECT_UNAUTHORIZED` | `true` | Set to `false` for Electrum servers with certificates not trusted by the local CA store. |
+| `WATCH_XPUB` | unset | Extended public key to watch. Supports `xpub`/`tpub` P2PKH and `zpub`/`vpub` native SegWit P2WPKH. |
+| `WATCH_ADDRESS_COUNT` | `200` | Number of child addresses to derive and watch. |
+| `WATCH_CHAIN` | `0` | Non-hardened child chain to derive, usually `0` for external addresses. |
+| `LOG_ADDRESS_REQUESTS` | `false` | When `true`, logs every observed address/script-hash request, including non-alerts. |
+| `TELEGRAM_BOT_TOKEN` | unset | Enables Telegram notifications when set with `TELEGRAM_CHAT_ID`. |
+| `TELEGRAM_CHAT_ID` | unset | Destination Telegram chat ID for alerts. |
+| `TELEGRAM_CUSTOM_MESSAGE` | unset | Sends this exact Telegram text instead of generated alert details. |
+| `TELEGRAM_DEBOUNCE_MS` | `5000` | Quiet period before queued Telegram alerts are sent as one message. |
 
-```bash
-LISTEN_PORT=60001 ELECTRUM_HOST=btc1.shiftcrypto.io ELECTRUM_PORT=443 ELECTRUM_TLS=true ELECTRUM_TLS_REJECT_UNAUTHORIZED=false bun run start
-```
+## Watched-Key Alerts
 
-## Watched xpub alerts
+Set `WATCH_XPUB` to derive watched addresses at startup. The proxy computes the
+Electrum script hash for each derived output script. If the wallet sends any
+observed `blockchain.scripthash.*` request for a watched hash, the proxy emits a
+notification.
 
-Set `WATCH_XPUB` to derive watched addresses at startup. The proxy supports
-`xpub`/`tpub` P2PKH watches and `zpub`/`vpub` native SegWit P2WPKH watches. It
-derives the first 200 external-chain addresses, computes their Electrum script
-hashes, and emits an alert if the wallet sends any `blockchain.scripthash.*`
-request for one of those hashes:
-
-```bash
-WATCH_XPUB=xpub... bun run start
-```
-
-Optional watch settings:
-
-- `WATCH_ADDRESS_COUNT` changes the number of derived addresses. Default: `200`.
-- `WATCH_CHAIN` changes the non-hardened child chain. Default: `0`.
-
-Alert example:
+Console alert example:
 
 ```text
-[alert] watched script-hash requested client=127.0.0.1:12345 method=blockchain.scripthash.subscribe address=1... path=m/0/0 scripthash=... id=1
+[alert] watched script-hash requested client=127.0.0.1:12345 method=blockchain.scripthash.subscribe address=bc1q... path=m/0/0 scripthash=... id=1
 ```
 
-Internally, watched matches are published through `NotificationService.notify()`.
-Custom `NotificationHandler` implementations can register with the service to
-trigger their own side effects. The default service registers a console handler
-that emits the alert shown above.
-
-## Telegram alerts
-
-Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` to automatically register a
-Telegram notification handler through [grammY](https://grammy.dev/). Telegram
-alerts are debounced: the handler waits for 5 seconds of silence, then sends all
-queued alerts as a single message.
-
-```bash
-TELEGRAM_BOT_TOKEN=123:abc TELEGRAM_CHAT_ID=123456789 bun run start
-```
-
-Optional Telegram setting:
-
-- `TELEGRAM_CUSTOM_MESSAGE` sends this exact text instead of the generated alert
-  details.
-- `TELEGRAM_DEBOUNCE_MS` changes the quiet period. Default: `5000`.
-
-Non-alert address request logging is disabled by default. Set
-`LOG_ADDRESS_REQUESTS=true` to also print every observed address or script-hash
-request:
+Non-alert request logs are disabled by default. Enable them explicitly:
 
 ```bash
 LOG_ADDRESS_REQUESTS=true bun run start
 ```
 
-Logged methods include the common address and script-hash query methods:
+## Notifications
+
+Watched matches are published through `NotificationService.notify()`.
+`NotificationHandler` implementations can register with the service and run
+their own side effects.
+
+The default notification service registers a console handler. If Telegram env
+vars are present, the proxy also registers a Telegram handler.
+
+## Telegram
+
+Telegram alerts use [grammY](https://grammy.dev/) and `bot.api.sendMessage`.
+
+```bash
+TELEGRAM_BOT_TOKEN=123:abc \
+TELEGRAM_CHAT_ID=123456789 \
+bun run start
+```
+
+Telegram alerts are debounced. The handler waits for `TELEGRAM_DEBOUNCE_MS`
+milliseconds of silence, then sends one message for all queued notifications.
+With `TELEGRAM_CUSTOM_MESSAGE`, that exact text is sent once per debounce window
+instead of generated alert details.
+
+## Observed Methods
+
+The parser currently observes these address and script-hash methods:
 
 ```text
 blockchain.scripthash.get_balance
@@ -106,7 +115,29 @@ blockchain.address.listunspent
 blockchain.address.subscribe
 ```
 
-## Project layout
+Alerts are only emitted for watched `blockchain.scripthash.*` targets.
+`blockchain.address.*` requests are currently observable logs only when
+`LOG_ADDRESS_REQUESTS=true`.
+
+## Tests
+
+Run typecheck:
+
+```bash
+bun run typecheck
+```
+
+Run tests:
+
+```bash
+bun test
+```
+
+`index.test.ts` is a live integration test against
+`btc1.shiftcrypto.io:443`. The other tests use local sockets and fake Telegram
+senders.
+
+## Project Layout
 
 - `index.ts` is the public export surface and CLI entrypoint.
 - `src/config.ts` parses environment configuration.
@@ -115,11 +146,7 @@ blockchain.address.subscribe
   data requests.
 - `src/xpub-watch.ts` derives watched addresses using `@scure/bip32` and maps
   them to Electrum script hashes.
-- `src/notification-service.ts` publishes watched-address notifications to
+- `src/notification-service.ts` publishes watched-hash notifications to
   registered handlers.
 - `src/telegram-notification-handler.ts` sends debounced Telegram alerts through
-  grammY when Telegram env vars are configured.
-- `src/*.test.ts` cover local behavior; `index.test.ts` is the live integration
-  test against `btc1.shiftcrypto.io:443`.
-
-This project was created using `bun init` in bun v1.3.11. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+  grammY.
