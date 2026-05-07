@@ -13,5 +13,9 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "@scure/bip32": "^2.2.0",
+    "bitcoinjs-lib": "^7.0.1"
   }
 }

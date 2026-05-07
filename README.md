@@ -38,6 +38,28 @@ CA store. For those endpoints, set `ELECTRUM_TLS_REJECT_UNAUTHORIZED=false`:
 LISTEN_PORT=60001 ELECTRUM_HOST=btc1.shiftcrypto.io ELECTRUM_PORT=443 ELECTRUM_TLS=true ELECTRUM_TLS_REJECT_UNAUTHORIZED=false bun run start
 ```
 
+## Watched xpub alerts
+
+Set `WATCH_XPUB` to derive watched addresses at startup. The proxy derives the
+first 200 external-chain P2PKH addresses from that xpub, computes their Electrum
+script hashes, and emits an alert if the wallet requests a balance for one of
+those hashes:
+
+```bash
+WATCH_XPUB=xpub... bun run start
+```
+
+Optional watch settings:
+
+- `WATCH_ADDRESS_COUNT` changes the number of derived addresses. Default: `200`.
+- `WATCH_CHAIN` changes the non-hardened child chain. Default: `0`.
+
+Alert example:
+
+```text
+[alert] watched address balance requested client=127.0.0.1:12345 address=1... path=m/0/0 scripthash=... id=1
+```
+
 Logged methods include the common address and script-hash query methods:
 
 ```text
@@ -60,6 +82,8 @@ blockchain.address.subscribe
 - `src/proxy.ts` owns socket forwarding and upstream TLS/TCP connections.
 - `src/electrum-observer.ts` parses Electrum JSON-RPC lines and reports address
   data requests.
+- `src/xpub-watch.ts` derives watched addresses using `@scure/bip32` and maps
+  them to Electrum script hashes.
 - `src/*.test.ts` cover local behavior; `index.test.ts` is the live integration
   test against `btc1.shiftcrypto.io:443`.
 

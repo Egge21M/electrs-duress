@@ -11,6 +11,13 @@ export interface UpstreamEndpoint extends Endpoint {
 export interface ElectrumProxyConfig {
   listen: Endpoint;
   upstream: UpstreamEndpoint;
+  watch?: WatchConfig;
+}
+
+export interface WatchConfig {
+  xpub: string;
+  addressCount: number;
+  chain: number;
 }
 
 export interface Logger {

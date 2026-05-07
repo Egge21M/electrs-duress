@@ -3,7 +3,21 @@ import type { ElectrumProxyConfig } from "./types";
 export function readConfigFromEnv(
   env: Record<string, string | undefined>,
 ): ElectrumProxyConfig {
-  return {
+  const watch = env.WATCH_XPUB
+    ? {
+        xpub: env.WATCH_XPUB,
+        addressCount: parseIntegerInRange(
+          env.WATCH_ADDRESS_COUNT,
+          200,
+          "WATCH_ADDRESS_COUNT",
+          1,
+          10_000,
+        ),
+        chain: parseIntegerInRange(env.WATCH_CHAIN, 0, "WATCH_CHAIN", 0, 1),
+      }
+    : undefined;
+
+  const config: ElectrumProxyConfig = {
     listen: {
       host: env.LISTEN_HOST ?? "127.0.0.1",
       port: parsePort(env.LISTEN_PORT, 60001, "LISTEN_PORT"),
@@ -19,6 +33,12 @@ export function readConfigFromEnv(
       ),
     },
   };
+
+  if (watch) {
+    config.watch = watch;
+  }
+
+  return config;
 }
 
 function parsePort(value: string | undefined, fallback: number, name: string) {
@@ -52,4 +72,23 @@ function parseBoolean(
   }
 
   throw new Error(`${name} must be true or false`);
+}
+
+function parseIntegerInRange(
+  value: string | undefined,
+  fallback: number,
+  name: string,
+  min: number,
+  max: number,
+) {
+  if (value === undefined || value === "") {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < min || parsed > max) {
+    throw new Error(`${name} must be an integer between ${min} and ${max}`);
+  }
+
+  return parsed;
 }

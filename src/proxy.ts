@@ -1,6 +1,7 @@
 import net, { type Server, type Socket } from "node:net";
 import tls from "node:tls";
 import { createElectrumRequestObserver } from "./electrum-observer";
+import { createXpubWatch, type XpubWatch } from "./xpub-watch";
 import type { ElectrumProxyConfig, Logger, UpstreamEndpoint } from "./types";
 
 export interface CreateElectrumProxyOptions {
@@ -13,6 +14,7 @@ export function createElectrumProxy(
 ): Server {
   const { config } = options;
   const logger = options.logger ?? console;
+  const watch = config.watch ? createXpubWatch(config.watch) : undefined;
 
   const server = net.createServer((walletSocket) => {
     const clientLabel = formatRemote(walletSocket);
@@ -23,6 +25,7 @@ export function createElectrumProxy(
     const requestObserver = createElectrumRequestObserver(
       clientLabel,
       (request) => {
+        maybeLogWatchedBalanceRequest(request, watch, logger);
         logger.log(
           `[address request] client=${request.clientLabel} method=${request.method} target=${String(
             request.target,
@@ -71,6 +74,36 @@ export function createElectrumProxy(
   });
 
   return server;
+}
+
+function maybeLogWatchedBalanceRequest(
+  request: {
+    clientLabel: string;
+    id: string | number | null;
+    method: string;
+    target: unknown;
+  },
+  watch: XpubWatch | undefined,
+  logger: Logger,
+) {
+  if (
+    !watch ||
+    request.method !== "blockchain.scripthash.get_balance" ||
+    typeof request.target !== "string"
+  ) {
+    return;
+  }
+
+  const watchedAddress = watch.byScriptHash.get(request.target.toLowerCase());
+  if (!watchedAddress) {
+    return;
+  }
+
+  logger.error(
+    `[alert] watched address balance requested client=${request.clientLabel} address=${watchedAddress.address} path=${watchedAddress.path} scripthash=${watchedAddress.scriptHash} id=${String(
+      request.id ?? "notification",
+    )}`,
+  );
 }
 
 export function formatUpstream(upstream: UpstreamEndpoint) {
