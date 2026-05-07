@@ -5,6 +5,9 @@ electrs-compatible server. It forwards traffic in both directions, watches for
 configured wallet script hashes, and emits notifications when a watched hash is
 requested.
 
+This repository is a Bun workspace. The proxy implementation lives in
+`packages/server`, while root scripts delegate to that package.
+
 ## Quick Start
 
 Install dependencies:
@@ -130,23 +133,29 @@ bun run typecheck
 Run tests:
 
 ```bash
-bun test
+bun run test
 ```
 
-`index.test.ts` is a live integration test against
-`btc1.shiftcrypto.io:443`. The other tests use local sockets and fake Telegram
-senders.
+The root test command runs the server package tests. `packages/server/index.test.ts`
+is a live integration test against `btc1.shiftcrypto.io:443`. The other tests
+use local sockets and fake Telegram senders.
 
 ## Project Layout
 
-- `index.ts` is the public export surface and CLI entrypoint.
-- `src/config.ts` parses environment configuration.
-- `src/proxy.ts` owns socket forwarding and upstream TLS/TCP connections.
-- `src/electrum-observer.ts` parses Electrum JSON-RPC lines and reports address
-  data requests.
-- `src/xpub-watch.ts` derives watched addresses using `@scure/bip32` and maps
-  them to Electrum script hashes.
-- `src/notification-service.ts` publishes watched-hash notifications to
+- `package.json` defines the root workspace and delegates scripts to
+  `@electrs-duress/server`.
+- `packages/server/package.json` owns the server runtime dependencies and
+  package-local scripts.
+- `packages/server/index.ts` is the public export surface and CLI entrypoint.
+- `packages/server/src/config.ts` parses environment configuration.
+- `packages/server/src/proxy.ts` owns socket forwarding and upstream TLS/TCP
+  connections.
+- `packages/server/src/electrum-observer.ts` parses Electrum JSON-RPC lines and
+  reports address data requests.
+- `packages/server/src/xpub-watch.ts` derives watched addresses using
+  `@scure/bip32` and maps them to Electrum script hashes.
+- `packages/server/src/notification-service.ts` publishes watched-hash
+  notifications to
   registered handlers.
-- `src/telegram-notification-handler.ts` sends debounced Telegram alerts through
-  grammY.
+- `packages/server/src/telegram-notification-handler.ts` sends debounced
+  Telegram alerts through grammY.

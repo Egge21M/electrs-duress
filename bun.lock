@@ -4,20 +4,23 @@
   "workspaces": {
     "": {
       "name": "electrs-duress",
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5",
+      },
+    },
+    "packages/server": {
+      "name": "@electrs-duress/server",
       "dependencies": {
         "@scure/bip32": "^2.2.0",
         "bitcoinjs-lib": "^7.0.1",
         "grammy": "^1.42.0",
       },
-      "devDependencies": {
-        "@types/bun": "latest",
-      },
-      "peerDependencies": {
-        "typescript": "^5",
-      },
     },
   },
   "packages": {
+    "@electrs-duress/server": ["@electrs-duress/server@workspace:packages/server"],
+
     "@grammyjs/types": ["@grammyjs/types@3.26.0", "", {}, "sha512-jlnyfxfev/2o68HlvAGRocAXgdPPX5QabG7jZlbqC2r9DZyWBfzTlg+nu3O3Fy4EhgLWu28hZ/8wr7DsNamP9A=="],
 
     "@noble/curves": ["@noble/curves@2.2.0", "", { "dependencies": { "@noble/hashes": "2.2.0" } }, "sha512-T/BoHgFXirb0ENSPBquzX0rcjXeM6Lo892a2jlYJkqk83LqZx0l1Of7DzlKJ6jkpvMrkHSnAcgb5JegL8SeIkQ=="],

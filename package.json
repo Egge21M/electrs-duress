@@ -1,22 +1,17 @@
 {
   "name": "electrs-duress",
-  "module": "index.ts",
-  "type": "module",
   "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "start": "bun run index.ts",
-    "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "start": "bun run --filter @electrs-duress/server start",
+    "test": "bun run --filter @electrs-duress/server test",
+    "typecheck": "bun run --filter @electrs-duress/server typecheck"
   },
   "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
+    "@types/bun": "latest",
     "typescript": "^5"
-  },
-  "dependencies": {
-    "@scure/bip32": "^2.2.0",
-    "bitcoinjs-lib": "^7.0.1",
-    "grammy": "^1.42.0"
   }
 }

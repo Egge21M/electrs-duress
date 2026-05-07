@@ -1,0 +1,16 @@
+{
+  "name": "@electrs-duress/server",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run index.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@scure/bip32": "^2.2.0",
+    "bitcoinjs-lib": "^7.0.1",
+    "grammy": "^1.42.0"
+  }
+}
