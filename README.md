@@ -76,6 +76,9 @@ settings which remain disabled until token and chat ID are configured.
 | `ELECTRUM_TLS` | `false` | Use TLS for upstream Electrum traffic. |
 | `ELECTRUM_TLS_REJECT_UNAUTHORIZED` | `true` | Set to `false` for Electrum servers with certificates not trusted by the local CA store. |
 | `LOG_ADDRESS_REQUESTS` | `false` | When `true`, logs every observed address/script-hash request, including non-alerts. |
+| `TELEGRAM_BOT_TOKEN` | unset | Enables Telegram notifications when set with `TELEGRAM_CHAT_ID`. |
+| `TELEGRAM_CHAT_ID` | unset | Destination Telegram chat ID for alerts. |
+| `TELEGRAM_CUSTOM_MESSAGE` | unset | Sends this exact Telegram text instead of generated alert details. |
 | `TELEGRAM_DEBOUNCE_MS` | `5000` | Quiet period before queued Telegram alerts are sent as one message. |
 
 Generate migrations after schema changes:
@@ -94,6 +97,16 @@ DB_FILE_NAME=electrs-duress.sqlite bun run db:migrate
 Migration files live in `packages/server/drizzle`; local `*.sqlite` database
 files are ignored.
 
+Runtime config values can be inserted or updated directly in SQLite:
+
+```sql
+INSERT INTO config_entries (key, value, updated_at_ms)
+VALUES ('ELECTRUM_HOST', 'btc1.shiftcrypto.io', unixepoch() * 1000)
+ON CONFLICT(key) DO UPDATE SET
+  value = excluded.value,
+  updated_at_ms = excluded.updated_at_ms;
+```
+
 ## Watched-Key Alerts
 
 Enabled xpub watch sources are loaded from SQLite at startup. The proxy derives
@@ -101,6 +114,27 @@ branch `0` addresses, computes the Electrum script hash for each derived output
 script, and keeps the active script-hash index in memory. If the wallet sends
 any observed `blockchain.scripthash.*` request for a watched hash, the proxy
 emits a notification.
+
+Add watch sources to `xpub_watch_sources` after migrations have been applied:
+
+```sql
+INSERT INTO xpub_watch_sources (
+  xpub,
+  label,
+  address_count,
+  enabled,
+  created_at_ms,
+  updated_at_ms
+)
+VALUES (
+  'xpub...',
+  'primary wallet',
+  20,
+  true,
+  unixepoch() * 1000,
+  unixepoch() * 1000
+);
+```
 
 Console alert example:
 
@@ -183,6 +217,12 @@ use local sockets and fake Telegram senders.
 - `packages/server/src/app.ts` composes the database, repositories, config,
   watch service, notification service, and TCP proxy into the runtime used by
   the CLI and future API layers.
+- `packages/server/src/db/schema.ts` defines the `config_entries` and
+  `xpub_watch_sources` SQLite tables used by runtime composition.
+- `packages/server/src/db/config-repository.ts` reads and writes scalar runtime
+  config records.
+- `packages/server/src/db/xpub-watch-source-repository.ts` reads and writes
+  persisted watch sources.
 - `packages/server/src/config.ts` parses string-backed configuration records
   into typed proxy settings.
 - `packages/server/src/proxy.ts` owns socket forwarding and upstream TLS/TCP

@@ -35,6 +35,11 @@ double-quoted strings, and trailing commas in multiline calls and object
 literals. Use camelCase for variables/functions and PascalCase for exported
 types/classes.
 
+Keep runtime composition in `packages/server/src/app.ts`. CLI and future API
+entrypoints should consume the composed runtime instead of rebuilding database,
+watch-service, notification, or proxy wiring locally. Keep `proxy.ts` focused on
+socket forwarding and observed-request handling.
+
 ## Testing Guidelines
 
 Use `bun:test` with `test` and `expect`. Name tests after the behavior being
